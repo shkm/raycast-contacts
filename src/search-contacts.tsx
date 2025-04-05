@@ -1,8 +1,8 @@
-import { List, showToast, Toast } from "@raycast/api";
-import { useEffect, useState } from "react";
-import { getAllContacts } from "./contacts";
-import { Contact } from "./types";
+import { ActionPanel, closeMainWindow, List, PopToRootType, showToast, Toast } from "@raycast/api";
 import { getAvatarIcon } from "@raycast/utils";
+import { useEffect, useState } from "react";
+import { getAllContacts, openInContacts } from "./contacts";
+import { Contact } from "./types";
 
 interface State {
   contacts?: Contact[];
@@ -18,24 +18,20 @@ export default function Command() {
         const contacts = await getAllContacts();
         setState({ contacts: contacts });
       } catch (error) {
-        setState({ error: error instanceof Error ? error : new Error("Something went wrong.") });
+        showToast({
+          style: Toast.Style.Failure,
+          title: "Could not load contacts.",
+          message: error instanceof Error ? error.message : "Something went wrong.",
+        });
       }
     }
 
     fetchContacts();
   }, []);
 
-  if (state.error) {
-    showToast({
-      style: Toast.Style.Failure,
-      title: "Failed loading stories",
-      message: state.error.message,
-    });
-  }
-
   return (
-    <List isLoading={!state.contacts && !state.error}>
-      {state.contacts?.map((contact) => <ContactListItem contact={contact} key={contact.id} />)}
+    <List isLoading={!state.contacts}>
+      {state.contacts?.map((contact) => <ContactListItem contact={contact} key={contact.globalId} />)}
     </List>
   );
 }
@@ -43,5 +39,24 @@ export default function Command() {
 function ContactListItem(props: { contact: Contact }) {
   const subtitle = [props.contact.jobTitle, props.contact.organization].filter((item) => item).join(", ");
   const icon = getAvatarIcon(props.contact.fullName);
-  return <List.Item title={props.contact.fullName} subtitle={subtitle} icon={icon} />;
+  return (
+    <List.Item
+      title={props.contact.fullName}
+      subtitle={subtitle}
+      icon={icon}
+      actions={<Actions contact={props.contact} />}
+    />
+  );
+}
+
+function Actions(props: { contact: Contact }) {
+  const openInContactsAction = () => {
+    closeMainWindow({ popToRootType: PopToRootType.Immediate });
+    openInContacts(props.contact);
+  };
+  return (
+    <ActionPanel title={props.contact.fullName}>
+      <ActionPanel.Item title="Open in Contacts" onAction={openInContactsAction} />
+    </ActionPanel>
+  );
 }

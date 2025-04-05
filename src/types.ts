@@ -1,5 +1,6 @@
 export type Contact = {
-  id: number;
+  pk: number;
+  globalId: string;
   fullName: string;
   firstName: string | null;
   lastName: string | null;
